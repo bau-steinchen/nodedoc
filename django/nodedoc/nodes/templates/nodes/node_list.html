@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netzwerkgeräte</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        .online { color: green; }
+        .offline { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Netzwerkgeräte</h1>
+    <table>
+        <tr>
+            <th>IP-Adresse</th>
+            <th>Hostname</th>
+            <th>MAC-Adresse</th>
+            <th>Status</th>
+        </tr>
+        <tbody id="node-list"></tbody>
+    </table>
+
+    <script>
+        let nodes = {};  // Zwischenspeicher für Geräte
+
+        let socket = new WebSocket("ws://" + window.location.host + "/ws/nodes/");
+
+        socket.onmessage = function(event) {
+            let updatednodes = JSON.parse(event.data);
+
+            updatednodes.forEach(node => {
+                let data = node[0].fields;
+                let id = node[0].pk;
+
+                if (nodes[id]) {
+                    // Falls Gerät existiert, UI updaten
+                    let row = document.querySelector(`tr[data-id="${id}"]`);
+                    row.innerHTML = `<td>${data.ip_address}</td>
+                                     <td>${data.hostname || 'N/A'}</td>
+                                     <td>${data.mac_address || 'N/A'}</td>
+                                     <td class="${data.online ? 'online' : 'offline'}">
+                                        ${data.online ? 'Online' : 'Offline'}
+                                     </td>`;
+                } else {
+                    // Falls neues Gerät, hinzufügen
+                    let table = document.getElementById("node-list");
+                    let row = document.createElement("tr");
+                    row.setAttribute("data-id", id);
+                    row.innerHTML = `<td>${data.ip_address}</td>
+                                     <td>${data.hostname || 'N/A'}</td>
+                                     <td>${data.mac_address || 'N/A'}</td>
+                                     <td class="${data.online ? 'online' : 'offline'}">
+                                        ${data.online ? 'Online' : 'Offline'}
+                                     </td>`;
+                    table.appendChild(row);
+                    nodes[id] = data;
+                }
+            });
+        };
+    </script>
+</body>
+</html>
